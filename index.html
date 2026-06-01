@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản lý điện theo năm</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial,sans-serif;
+    margin:20px;
+    background:#f5f5f5;
+}
+
+.container{
+    max-width:1400px;
+    margin:auto;
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+}
+
+h2{
+    margin-top:0;
+    margin-bottom:20px;
+    color:#1976d2;
+}
+
+/* ===== Thanh điều khiển ===== */
+
+.controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    align-items:flex-end;
+    margin-bottom:20px;
+    padding:15px;
+    background:#fafafa;
+    border:1px solid #ddd;
+    border-radius:8px;
+}
+
+.controls label{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    font-size:14px;
+    font-weight:600;
+    color:#444;
+}
+
+.controls input[type="number"]{
+    width:160px;
+    height:40px;
+    padding:0 10px;
+    font-size:15px;
+    border:1px solid #ccc;
+    border-radius:6px;
+    outline:none;
+}
+
+.controls input[type="number"]:focus{
+    border-color:#1976d2;
+    box-shadow:0 0 0 3px rgba(25,118,210,.15);
+}
+
+button{
+    height:40px;
+    padding:0 20px;
+    border:none;
+    border-radius:6px;
+    background:#1976d2;
+    color:#fff;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    transition:.2s;
+}
+
+button:hover{
+    background:#1565c0;
+}
+
+button:active{
+    transform:scale(.98);
+}
+
+/* ===== Bảng ===== */
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,td{
+    border:1px solid #ddd;
+    padding:8px;
+    text-align:center;
+}
+
+th{
+    background:#1976d2;
+    color:white;
+}
+
+table input[type="number"]{
+    width:130px;
+    height:36px;
+    text-align:center;
+    border:1px solid #ccc;
+    border-radius:5px;
+    font-size:14px;
+}
+
+table input[type="number"]:focus{
+    border-color:#1976d2;
+    outline:none;
+}
+
+.price-cell{
+    background:#e3f2fd;
+    color:#b8860b;
+    font-weight:normal;
+}
+
+.total{
+    margin-top:20px;
+    padding-top:15px;
+    border-top:2px solid #eee;
+    text-align:right;
+    font-size:24px;
+    color:#d32f2f;
+    font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Quản lý điện theo năm</h2>
+
+<div class="controls">
+
+    <label>
+        Năm:
+        <input type="number" id="year" value="2026">
+    </label>
+
+    <label>
+        Đơn giá:
+        <input type="number" id="yearPrice" value="3500">
+    </label>
+
+    <button onclick="loadYear()">Xem</button>
+
+    <button onclick="updateYearPrice()">Cập nhật giá</button>
+    <button onclick="backupData()">📥 Sao lưu dữ liệu</button>
+    <button onclick="document.getElementById('restoreFile').click()">📤 Khôi phục dữ liệu
+</button>
+
+<input type="file"
+       id="restoreFile"
+       accept=".json"
+       style="display:none"
+       onchange="restoreData(event)">
+   
+</div>
+
+<div id="tableArea"></div>
+
+<div id="yearTotal" class="total">Tổng tiền: 0 đ</div>
+
+</div>
+
+<script>
+
+const STORAGE_KEY = "electric_manager";
+const START_YEAR = 2026;
+const DEFAULT_PRICE = 3500;
+
+function getData(){
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+}
+
+function saveData(data){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function createYearData(year,price){
+
+    const rows = [];
+
+    const startMonth = year === START_YEAR ? 6 : 1;
+
+    for(let m=startMonth; m<=12; m++){
+
+        const nextM = m === 12 ? 1 : m + 1;
+        const nextY = m === 12 ? year + 1 : year;
+
+        rows.push({
+            period:
+            `01/${String(m).padStart(2,"0")}/${year} → 01/${String(nextM).padStart(2,"0")}/${nextY}`,
+            startIndex:"",
+            endIndex:"",
+            price:price
+        });
+    }
+
+    return {
+        yearPrice:price,
+        rows:rows
+    };
+}
+
+function loadYear(){
+
+    const year = Number(document.getElementById("year").value);
+
+    let data = getData();
+
+    if(!data[year]){
+
+        data[year] = createYearData(year, DEFAULT_PRICE);
+
+        if(year > START_YEAR){
+
+            const prev = data[year-1];
+
+            if(prev){
+
+                const last =
+                    prev.rows[prev.rows.length - 1].endIndex;
+
+                data[year].rows[0].startIndex = last || "";
+            }
+        }
+
+        saveData(data);
+    }
+
+    document.getElementById("yearPrice").value =
+        data[year].yearPrice;
+
+    render(year);
+}
+
+function updateYearPrice(){
+
+    const year = Number(document.getElementById("year").value);
+    const price = Number(document.getElementById("yearPrice").value);
+
+    let data = getData();
+    if(!data[year]) return;
+
+    data[year].yearPrice = price;
+
+    data[year].rows.forEach(r => r.price = price);
+
+    saveData(data);
+
+    render(year);
+}
+
+function render(year){
+
+    let data = getData();
+    let rows = data[year].rows;
+
+    let total = 0;
+
+    let html = `
+    <table>
+    <thead>
+    <tr>
+        <th>Kỳ tính toán (Từ ngày → Đến ngày)</th>
+        <th>Chỉ số Đầu kỳ (kWh)</th>
+        <th>Chỉ số Cuối kỳ (kWh)</th>
+        <th>Điện tiêu thụ (kWh)</th>
+        <th>Đơn giá (đ/kWh)</th>
+        <th>Thành tiền (VND)</th>
+    </tr>
+    </thead>
+    <tbody>
+    `;
+
+    rows.forEach((r,i)=>{
+
+        if(i>0){
+            r.startIndex = Number(rows[i-1].endIndex || 0);
+        }
+
+        const start = Number(r.startIndex || 0);
+        const end = Number(r.endIndex || 0);
+
+        const use = Math.max(0, end - start);
+        const money = use * r.price;
+
+        total += money;
+
+        const canEditStart = (year === START_YEAR && i === 0);
+
+        html += `
+        <tr>
+
+            <td>${r.period}</td>
+
+            <td>
+                ${
+                    canEditStart
+                    ? `<input type="number" value="${r.startIndex}"
+                        onchange="updateField(${year},${i},'startIndex',this.value)">`
+                    : start
+                }
+            </td>
+
+            <td>
+                <input type="number" value="${r.endIndex}"
+                    onchange="updateField(${year},${i},'endIndex',this.value)">
+            </td>
+
+            <td>${use}</td>
+
+            <td class="price-cell">${formatMoney(r.price)}</td>
+
+            <td>${formatMoney(money)}</td>
+
+        </tr>`;
+    });
+
+    html += `</tbody></table>`;
+
+    document.getElementById("tableArea").innerHTML = html;
+
+    document.getElementById("yearTotal").innerHTML =
+        "Tổng tiền: " + formatMoney(total);
+
+    saveData(data);
+}
+
+function updateField(year,index,field,value){
+
+    let data = getData();
+
+    data[year].rows[index][field] =
+        value === "" ? "" : Number(value);
+
+    saveData(data);
+
+    render(year);
+}
+
+function formatMoney(n){
+    return Number(n).toLocaleString("vi-VN") + " đ";
+}
+
+window.onload = loadYear;
+function backupData(){
+
+    const data = getData();
+
+    const blob = new Blob(
+        [JSON.stringify(data,null,2)],
+        {type:"application/json"}
+    );
+
+    const a = document.createElement("a");
+
+    a.href = URL.createObjectURL(blob);
+
+    a.download =
+        "quanlydien_backup_" +
+        new Date().toISOString().slice(0,10) +
+        ".json";
+
+    a.click();
+
+    URL.revokeObjectURL(a.href);
+}
+
+function restoreData(event){
+
+    const file = event.target.files[0];
+
+    if(!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+
+        try{
+
+            const data =
+                JSON.parse(e.target.result);
+
+            localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify(data)
+            );
+
+            alert("Khôi phục dữ liệu thành công!");
+
+            loadYear();
+
+        }catch{
+
+            alert("File không hợp lệ!");
+        }
+    };
+
+    reader.readAsText(file);
+}
+</script>
+
+</body>
+</html>
