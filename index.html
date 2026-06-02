@@ -323,8 +323,8 @@ function render(year){
 
           <td>
               <input type="number"
-                    value="${r.endIndex}"
-                    oninput="updateField(${year},${i},'endIndex',this.value)">
+                value="${r.endIndex}"
+                onchange="updateField(${year},${i},'endIndex',this.value);render(${year})">
           </td>
 
           <td>${use}</td>
@@ -351,11 +351,23 @@ function updateField(year,index,field,value){
     let data = getData();
 
     data[year].rows[index][field] =
-        value.trim() === "" ? "" : parseFloat(value);
+        value === "" ? "" : Number(value);
+
+    if(
+        field === "endIndex" &&
+        index === data[year].rows.length - 1
+    ){
+
+        const nextYear = year + 1;
+
+        if(data[nextYear]){
+
+            data[nextYear].rows[0].startIndex =
+                value === "" ? "" : Number(value);
+        }
+    }
 
     saveData(data);
-
-    render(year);
 }
 
 function formatMoney(n){
