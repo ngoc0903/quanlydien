@@ -319,7 +319,7 @@ function render(year){
                   canEditStart
                   ? `<input type="number"
                           value="${r.startIndex}"
-                          oninput="updateField(${year},${i},'startIndex',this.value)">`
+                          onchange="updateField(${year},${i},'startIndex',this.value)">`
                   : start
               }
           </td>
