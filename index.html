@@ -307,31 +307,33 @@ function render(year){
         const canEditStart = (year === START_YEAR && i === 0);
 
         html += `
-        <tr>
+      <tr>
 
-            <td>${r.period}</td>
+          <td>${r.period}</td>
 
-            <td>
-                ${
-                    canEditStart
-                    ? `<input type="number" value="${r.startIndex}"
-                        onchange="updateField(${year},${i},'startIndex',this.value)">`
-                    : start
-                }
-            </td>
+          <td>
+              ${
+                  canEditStart
+                  ? `<input type="number"
+                          value="${r.startIndex}"
+                          oninput="updateField(${year},${i},'startIndex',this.value)">`
+                  : start
+              }
+          </td>
 
-            <td>
-                <input type="number" value="${r.endIndex}"
-                    onchange="updateField(${year},${i},'endIndex',this.value)">
-            </td>
+          <td>
+              <input type="number"
+                    value="${r.endIndex}"
+                    oninput="updateField(${year},${i},'endIndex',this.value)">
+          </td>
 
-            <td>${use}</td>
+          <td>${use}</td>
 
-            <td class="price-cell">${formatMoney(r.price)}</td>
+          <td class="price-cell">${formatMoney(r.price)}</td>
 
-            <td>${formatMoney(money)}</td>
+          <td>${formatMoney(money)}</td>
 
-        </tr>`;
+      </tr>`;
     });
 
     html += `</tbody></table>`;
@@ -349,7 +351,7 @@ function updateField(year,index,field,value){
     let data = getData();
 
     data[year].rows[index][field] =
-        value === "" ? "" : Number(value);
+        value.trim() === "" ? "" : parseFloat(value);
 
     saveData(data);
 
